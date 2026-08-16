@@ -1,6 +1,7 @@
 name: Import Persian Calendar upstream
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
 
@@ -12,19 +13,28 @@ jobs:
     if: github.actor == 'sagarabi'
     runs-on: ubuntu-latest
     steps:
-      - name: Import upstream project
+      - name: Checkout destination
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Import upstream source
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/upstream /tmp/upstream.tar.gz
+          curl -L --fail --retry 3 -o /tmp/upstream.tar.gz https://github.com/persian-calendar/persian-calendar/archive/refs/heads/master.tar.gz
+          mkdir -p /tmp/upstream
+          tar -xzf /tmp/upstream.tar.gz -C /tmp/upstream --strip-components=1
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a /tmp/upstream/. .
+
+      - name: Commit and push imported source
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -e
-          git clone --depth 1 https://github.com/persian-calendar/persian-calendar.git /tmp/upstream
-          cd /tmp/upstream
-          rm -rf .git
-          cd "$GITHUB_WORKSPACE"
-          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -a /tmp/upstream/. .
+          set -euxo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Import upstream Persian Calendar project"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main --force
+          git commit -m "Import Persian Calendar upstream project" || true
+          git push origin HEAD:main --force
