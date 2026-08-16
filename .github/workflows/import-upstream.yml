@@ -1,0 +1,30 @@
+name: Import Persian Calendar upstream
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: github.actor == 'sagarabi'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Import upstream project
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          git clone --depth 1 https://github.com/persian-calendar/persian-calendar.git /tmp/upstream
+          cd /tmp/upstream
+          rm -rf .git
+          cd "$GITHUB_WORKSPACE"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a /tmp/upstream/. .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Import upstream Persian Calendar project"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main --force
